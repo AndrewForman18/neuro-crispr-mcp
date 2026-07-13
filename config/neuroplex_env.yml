@@ -1,6 +1,18 @@
+# NeuroPlex environment configuration.
+#
+# active_environment controls which block is loaded at runtime.
+# Override at deploy time with the NEUROPLEX_ENV environment variable:
+#   NEUROPLEX_ENV=prod python scripts/render_app_yaml.py --env prod --output app.yaml
+#
+# All values can also be overridden individually via environment variables:
+#   NEUROPLEX_CATALOG, NEUROPLEX_SCHEMA, NEUROPLEX_SQL_WAREHOUSE_ID,
+#   DATABRICKS_HOST, DATABRICKS_SERVING_ENDPOINT,
+#   NEUROPLEX_TABLE_PREFIX, NEUROPLEX_QUERY_LOG_TABLE
+
 active_environment: dev
 
 environments:
+  # ── dev ──────────────────────────────────────────────────────────────────
   dev:
     workspace_host: eisai-lakehouse-us-dev.cloud.databricks.com
     catalog: dhbl_discovery_us_dev
@@ -17,34 +29,19 @@ environments:
         name: databricks-claude-sonnet-5
         permission: CAN_QUERY
 
-  staging:
-    workspace_host: your-staging-workspace.cloud.databricks.com
-    catalog: your_staging_catalog
-    schema: your_schema
-    sql_warehouse_id: your_sql_warehouse_id
-    serving_endpoint: your_serving_endpoint
-    table_prefix: neuroplex
-    query_log_table: neuroplex_query_log
-    app_resources:
-      sql_warehouse:
-        id: your_sql_warehouse_id
-        permission: CAN_USE
-      serving_endpoint:
-        name: your_serving_endpoint
-        permission: CAN_QUERY
-
-  prod:
-    workspace_host: your-prod-workspace.cloud.databricks.com
-    catalog: your_prod_catalog
-    schema: your_schema
-    sql_warehouse_id: your_sql_warehouse_id
-    serving_endpoint: your_serving_endpoint
-    table_prefix: neuroplex
-    query_log_table: neuroplex_query_log
-    app_resources:
-      sql_warehouse:
-        id: your_sql_warehouse_id
-        permission: CAN_USE
-      serving_endpoint:
-        name: your_serving_endpoint
-        permission: CAN_QUERY
+  # ── Add new environments below. Copy this template for each target. ──────
+  # <env_name>:
+  #   workspace_host: <workspace>.cloud.databricks.com
+  #   catalog: <catalog>
+  #   schema: <schema>
+  #   sql_warehouse_id: <warehouse_id>
+  #   serving_endpoint: <endpoint_name>
+  #   table_prefix: neuroplex
+  #   query_log_table: neuroplex_query_log
+  #   app_resources:
+  #     sql_warehouse:
+  #       id: <warehouse_id>
+  #       permission: CAN_USE
+  #     serving_endpoint:
+  #       name: <endpoint_name>
+  #       permission: CAN_QUERY
