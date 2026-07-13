@@ -8,11 +8,11 @@ env:
   - name: STREAMLIT_GATHER_USAGE_STATS
     value: "false"
   - name: NEUROPLEX_ENV
-    value: dev
+    value: "dev"
   - name: DATABRICKS_SQL_WAREHOUSE_HTTP_PATH
     valueFrom: sql_warehouse
   - name: DATABRICKS_HOST
-    value: https://eisai-lakehouse-us-dev.cloud.databricks.com
+    value: eisai-lakehouse-us-dev.cloud.databricks.com
   - name: DATABRICKS_SERVING_ENDPOINT
     valueFrom: serving_endpoint
 resources:
