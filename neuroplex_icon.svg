@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="brain_fill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e879f9"/>
+      <stop offset="50%" style="stop-color:#a855f7"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="brain_stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#c026d3"/>
+      <stop offset="100%" style="stop-color:#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="highlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0abfc;stop-opacity:0.6"/>
+      <stop offset="100%" style="stop-color:#e879f9;stop-opacity:0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Brain shape - left hemisphere -->
+  <path d="M60 18 C42 18, 22 30, 20 48 C18 60, 22 70, 26 78 C22 82, 20 88, 24 94 C28 100, 36 102, 42 100 C46 104, 52 106, 58 104 L60 104"
+        fill="url(#brain_fill)" stroke="url(#brain_stroke)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Brain shape - right hemisphere -->
+  <path d="M60 18 C78 18, 98 30, 100 48 C102 60, 98 70, 94 78 C98 82, 100 88, 96 94 C92 100, 84 102, 78 100 C74 104, 68 106, 62 104 L60 104"
+        fill="url(#brain_fill)" stroke="url(#brain_stroke)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Highlight/shine on top -->
+  <path d="M60 20 C44 20, 28 30, 26 44 C30 30, 46 22, 60 22 C74 22, 90 30, 94 44 C92 30, 76 20, 60 20 Z"
+        fill="url(#highlight)"/>
+
+  <!-- Central fissure -->
+  <line x1="60" y1="22" x2="60" y2="102" stroke="#581c87" stroke-width="1.8" opacity="0.5"/>
+
+  <!-- Brain folds (sulci) - left -->
+  <g fill="none" stroke="#581c87" stroke-width="2" stroke-linecap="round" opacity="0.6">
+    <path d="M34 42 C40 46, 50 44, 58 40"/>
+    <path d="M28 58 C36 62, 48 60, 58 56"/>
+    <path d="M30 74 C38 78, 50 76, 58 72"/>
+    <path d="M36 90 C42 93, 52 92, 58 88"/>
+  </g>
+
+  <!-- Brain folds (sulci) - right -->
+  <g fill="none" stroke="#581c87" stroke-width="2" stroke-linecap="round" opacity="0.6">
+    <path d="M86 42 C80 46, 70 44, 62 40"/>
+    <path d="M92 58 C84 62, 72 60, 62 56"/>
+    <path d="M90 74 C82 78, 70 76, 62 72"/>
+    <path d="M84 90 C78 93, 68 92, 62 88"/>
+  </g>
+
+  <!-- Neural network nodes -->
+  <g filter="url(#glow)">
+    <circle cx="38" cy="50" r="4" fill="#06b6d4"/>
+    <circle cx="82" cy="50" r="4" fill="#fb923c"/>
+    <circle cx="44" cy="72" r="3.5" fill="#06b6d4"/>
+    <circle cx="76" cy="72" r="3.5" fill="#fb923c"/>
+    <circle cx="60" cy="60" r="4.5" fill="#ffffff" opacity="0.9"/>
+  </g>
+
+  <!-- Connections between nodes -->
+  <g stroke="#ffffff" stroke-width="1" opacity="0.4">
+    <line x1="38" y1="50" x2="60" y2="60"/>
+    <line x1="82" y1="50" x2="60" y2="60"/>
+    <line x1="44" y1="72" x2="60" y2="60"/>
+    <line x1="76" y1="72" x2="60" y2="60"/>
+  </g>
+</svg>

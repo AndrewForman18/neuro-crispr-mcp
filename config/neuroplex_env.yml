@@ -1,0 +1,50 @@
+active_environment: dev
+
+environments:
+  dev:
+    workspace_host: eisai-lakehouse-us-dev.cloud.databricks.com
+    catalog: dhbl_discovery_us_dev
+    schema: genesis_schema
+    sql_warehouse_id: 4a6cbd6099513596
+    serving_endpoint: databricks-claude-sonnet-5
+    table_prefix: neuroplex
+    query_log_table: neuroplex_query_log
+    app_resources:
+      sql_warehouse:
+        id: 4a6cbd6099513596
+        permission: CAN_USE
+      serving_endpoint:
+        name: databricks-claude-sonnet-5
+        permission: CAN_QUERY
+
+  staging:
+    workspace_host: your-staging-workspace.cloud.databricks.com
+    catalog: your_staging_catalog
+    schema: your_schema
+    sql_warehouse_id: your_sql_warehouse_id
+    serving_endpoint: your_serving_endpoint
+    table_prefix: neuroplex
+    query_log_table: neuroplex_query_log
+    app_resources:
+      sql_warehouse:
+        id: your_sql_warehouse_id
+        permission: CAN_USE
+      serving_endpoint:
+        name: your_serving_endpoint
+        permission: CAN_QUERY
+
+  prod:
+    workspace_host: your-prod-workspace.cloud.databricks.com
+    catalog: your_prod_catalog
+    schema: your_schema
+    sql_warehouse_id: your_sql_warehouse_id
+    serving_endpoint: your_serving_endpoint
+    table_prefix: neuroplex
+    query_log_table: neuroplex_query_log
+    app_resources:
+      sql_warehouse:
+        id: your_sql_warehouse_id
+        permission: CAN_USE
+      serving_endpoint:
+        name: your_serving_endpoint
+        permission: CAN_QUERY

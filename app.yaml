@@ -1,0 +1,26 @@
+command:
+  - streamlit
+  - run
+  - app.py
+  - --server.port
+  - "8000"
+env:
+  - name: STREAMLIT_GATHER_USAGE_STATS
+    value: "false"
+  - name: NEUROPLEX_ENV
+    value: dev
+  - name: DATABRICKS_SQL_WAREHOUSE_HTTP_PATH
+    valueFrom: sql_warehouse
+  - name: DATABRICKS_HOST
+    value: https://eisai-lakehouse-us-dev.cloud.databricks.com
+  - name: DATABRICKS_SERVING_ENDPOINT
+    valueFrom: serving_endpoint
+resources:
+  - name: sql_warehouse
+    sql_warehouse:
+      id: 4a6cbd6099513596
+      permission: CAN_USE
+  - name: serving_endpoint
+    serving_endpoint:
+      name: databricks-claude-sonnet-5
+      permission: CAN_QUERY

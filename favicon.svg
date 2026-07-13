@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <circle cx="32" cy="32" r="30" fill="#1a1a2e" stroke="#7b2ff7" stroke-width="2"/>
+  <path d="M32 12 C22 12, 14 20, 13 28 C12 35, 15 40, 18 44 C20 47, 22 50, 22 53 L32 53" 
+        fill="none" stroke="#c471f5" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M32 12 C42 12, 50 20, 51 28 C52 35, 49 40, 46 44 C44 47, 42 50, 42 53 L32 53" 
+        fill="none" stroke="#c471f5" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="22" cy="25" r="3.5" fill="#00d2ff"/>
+  <circle cx="42" cy="25" r="3.5" fill="#f5af19"/>
+  <circle cx="32" cy="18" r="4" fill="#7b2ff7"/>
+  <circle cx="32" cy="18" r="2" fill="white" opacity="0.8"/>
+  <line x1="22" y1="25" x2="32" y2="18" stroke="#c471f5" stroke-width="1" opacity="0.5"/>
+  <line x1="42" y1="25" x2="32" y2="18" stroke="#c471f5" stroke-width="1" opacity="0.5"/>
+  <circle cx="18" cy="40" r="2.5" fill="#00d2ff" opacity="0.8"/>
+  <circle cx="46" cy="40" r="2.5" fill="#f5af19" opacity="0.8"/>
+  <circle cx="32" cy="44" r="3" fill="#7b2ff7"/>
+  <line x1="22" y1="25" x2="18" y2="40" stroke="#c471f5" stroke-width="0.8" opacity="0.4"/>
+  <line x1="42" y1="25" x2="46" y2="40" stroke="#c471f5" stroke-width="0.8" opacity="0.4"/>
+  <line x1="18" y1="40" x2="32" y2="44" stroke="#c471f5" stroke-width="0.8" opacity="0.4"/>
+  <line x1="46" y1="40" x2="32" y2="44" stroke="#c471f5" stroke-width="0.8" opacity="0.4"/>
+</svg>

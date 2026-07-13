@@ -1,0 +1,28 @@
+# Generate app.yaml from config/neuroplex_env.yml with:
+#   python scripts/render_app_yaml.py --env <env>
+command:
+  - streamlit
+  - run
+  - app.py
+  - --server.port
+  - "8000"
+env:
+  - name: STREAMLIT_GATHER_USAGE_STATS
+    value: "false"
+  - name: NEUROPLEX_ENV
+    value: <environment>
+  - name: DATABRICKS_SQL_WAREHOUSE_HTTP_PATH
+    valueFrom: sql_warehouse
+  - name: DATABRICKS_HOST
+    value: <workspace_host>
+  - name: DATABRICKS_SERVING_ENDPOINT
+    valueFrom: serving_endpoint
+resources:
+  - name: sql_warehouse
+    sql_warehouse:
+      id: <sql_warehouse_id>
+      permission: CAN_USE
+  - name: serving_endpoint
+    serving_endpoint:
+      name: <serving_endpoint_name>
+      permission: CAN_QUERY
