@@ -51,14 +51,16 @@ query TargetAssociations($ensemblId: String!, $size: Int!) {
         }
       }
     }
-    knownDrugs(size: $size) {
+    drugAndClinicalCandidates {
       count
       rows {
+        id
+        maxClinicalStage
         drug {
           id
           name
           drugType
-          maximumClinicalTrialPhase
+          maximumClinicalStage
           mechanismsOfAction {
             rows {
               mechanismOfAction
@@ -66,15 +68,11 @@ query TargetAssociations($ensemblId: String!, $size: Int!) {
             }
           }
         }
-        disease {
-          id
-          name
-        }
-        phase
-        status
-        urls {
-          niceName
-          url
+        diseases {
+          disease {
+            id
+            name
+          }
         }
       }
     }
@@ -91,9 +89,6 @@ query SearchTarget($queryString: String!, $size: Int!) {
       entity
       name
       description
-      ... on Target {
-        approvedSymbol
-      }
     }
   }
 }
@@ -122,8 +117,9 @@ class OpenTargetsIngestor(BaseIngestor):
         """Resolve a gene symbol to an Ensembl ID via OpenTargets search."""
         data = self._graphql(_SEARCH_QUERY, {"queryString": gene_symbol, "size": 5})
         hits = data.get("search", {}).get("hits", [])
+        # Match by name (approvedSymbol not available in search results)
         for hit in hits:
-            if hit.get("approvedSymbol", "").upper() == gene_symbol.upper():
+            if hit.get("name", "").upper() == gene_symbol.upper():
                 return hit["id"]
         # Fallback: first target hit
         for hit in hits:
@@ -162,8 +158,8 @@ class OpenTargetsIngestor(BaseIngestor):
                 "association": assoc,
             }
 
-        # Yield known drugs
-        for drug_row in target.get("knownDrugs", {}).get("rows", []):
+        # Yield drug and clinical candidates
+        for drug_row in target.get("drugAndClinicalCandidates", {}).get("rows", []):
             yield {
                 "record_type": "known_drug",
                 "target": target,
@@ -202,17 +198,22 @@ class OpenTargetsIngestor(BaseIngestor):
         elif record_type == "known_drug":
             drug_entry = raw_record["drug_entry"]
             drug = drug_entry.get("drug", {})
-            disease = drug_entry.get("disease", {})
+            # New schema: diseases is an array of {disease: {id, name}}
+            diseases_list = drug_entry.get("diseases") or []
+            first_disease = next(
+                (d["disease"] for d in diseases_list if d.get("disease")), {}
+            )
+            stage = drug_entry.get("maxClinicalStage", "Unknown")
             return NormalizedRecord(
-                record_id=f"{target['id']}_{drug.get('id', 'unknown')}_{disease.get('id', '')}",
+                record_id=f"{target['id']}_{drug.get('id', 'unknown')}_{first_disease.get('id', '')}",
                 source_key="opentargets",
                 gene_symbol=gene,
-                disease=disease.get("name"),
+                disease=first_disease.get("name"),
                 drug=drug.get("name"),
-                title=f"{drug.get('name')} → {gene} (Phase {drug_entry.get('phase', '?')})",
+                title=f"{drug.get('name')} → {gene} ({stage})",
                 summary=f"Drug type: {drug.get('drugType')}. "
-                        f"Max phase: {drug.get('maximumClinicalTrialPhase')}. "
-                        f"Status: {drug_entry.get('status', 'unknown')}.",
+                        f"Max clinical stage: {drug.get('maximumClinicalStage')}. "
+                        f"Diseases: {', '.join(d['disease']['name'] for d in diseases_list if d.get('disease'))}.",
                 payload=drug_entry,
             )
 
