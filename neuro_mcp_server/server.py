@@ -98,19 +98,19 @@ def query_knockout_effects(gene_target: str, cell_type: str = "", pval_threshold
         limit: Max results (default 50, max 200).
     """
     limit = min(max(1, limit), 200)
-    where = ["gene_target = :gene_target", "pvals_adj < :pval"]
+    where = ["gene_target = :gene_target", "pvalue_adj < :pval"]
     params: dict[str, Any] = {"gene_target": gene_target, "pval": pval_threshold}
     if cell_type:
         where.append("group_name LIKE '%' || :cell_type || '%'")
         params["cell_type"] = cell_type
 
     query = f"""
-        SELECT names AS affected_gene, group_name AS cell_type,
-               logfoldchanges AS log2fc, pvals_adj,
-               n_pert_matched AS n_perturbed, n_ctrl_matched AS n_control
+        SELECT de_gene AS affected_gene, group_name AS cell_type,
+               log2fc, pvalue_adj,
+               n_cells_ko AS n_perturbed, n_cells_ctrl AS n_control
         FROM {TABLE_DIFF_EXPR}
         WHERE {' AND '.join(where)}
-        ORDER BY ABS(logfoldchanges) DESC
+        ORDER BY ABS(log2fc) DESC
         LIMIT {limit}
     """
     results = _execute_query(query, params)
@@ -127,7 +127,7 @@ def find_knockouts_affecting_gene(gene_name: str, cell_type: str = "", pval_thre
         limit: Max results.
     """
     limit = min(max(1, limit), 200)
-    where = ["names = :gene_name", "pvals_adj < :pval"]
+    where = ["de_gene = :gene_name", "pvalue_adj < :pval"]
     params: dict[str, Any] = {"gene_name": gene_name, "pval": pval_threshold}
     if cell_type:
         where.append("group_name LIKE '%' || :cell_type || '%'")
@@ -135,11 +135,11 @@ def find_knockouts_affecting_gene(gene_name: str, cell_type: str = "", pval_thre
 
     query = f"""
         SELECT gene_target AS knockout, group_name AS cell_type,
-               logfoldchanges AS log2fc, pvals_adj,
-               n_pert_matched AS n_perturbed, n_ctrl_matched AS n_control
+               log2fc, pvalue_adj,
+               n_cells_ko AS n_perturbed, n_cells_ctrl AS n_control
         FROM {TABLE_DIFF_EXPR}
         WHERE {' AND '.join(where)}
-        ORDER BY ABS(logfoldchanges) DESC
+        ORDER BY ABS(log2fc) DESC
         LIMIT {limit}
     """
     results = _execute_query(query, params)
@@ -305,10 +305,10 @@ def compare_cross_species(gene: str, limit: int = 30) -> str:
     # Mouse CRISPR Atlas (as KO target)
     mouse_query = f"""
         SELECT group_name AS cell_type, COUNT(*) AS n_sig_effects,
-               ROUND(AVG(ABS(logfoldchanges)), 3) AS avg_abs_log2fc,
-               MIN(pvals_adj) AS best_pval
+               ROUND(AVG(ABS(log2fc)), 3) AS avg_abs_log2fc,
+               MIN(pvalue_adj) AS best_pval
         FROM {TABLE_DIFF_EXPR}
-        WHERE gene_target = '{mouse_gene}' AND pvals_adj < 0.05
+        WHERE gene_target = '{mouse_gene}' AND pvalue_adj < 0.05
         GROUP BY group_name
         ORDER BY n_sig_effects DESC
         LIMIT {limit}

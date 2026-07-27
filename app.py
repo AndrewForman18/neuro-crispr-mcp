@@ -576,7 +576,7 @@ def query_impc_publications(query: str, limit: int = 5) -> str:
     Finds primary IMPC research articles on specific genes, phenotypes, or disease models."""
     import json as _json
     data = _call_impc_mcp("publication", "by_search_query", {"searchQuery": query})
-    results = data.get("data", [])[:limit]
+    results = (data.get("data") or [])[:limit]
     return _json.dumps({
         "source": "IMPC publications",
         "query": query,
@@ -1152,11 +1152,11 @@ def render_charts(tool_results: list[dict]):
                 st.plotly_chart(fig, use_container_width=True)
 
                 # Volcano plot (log2FC vs -log10 pval)
-                if "pvals_adj" in df_viz.columns:
-                    df_viz["pvals_adj"] = df_viz["pvals_adj"].astype(float)
-                    df_vol = df_viz[df_viz["pvals_adj"] > 0].copy()
-                    df_vol["-log10p"] = -np.log10(df_vol["pvals_adj"].clip(lower=1e-300))
-                    df_vol["significant"] = (df_vol["pvals_adj"] < 0.05) & (df_vol["log2fc"].abs() > 0.5)
+                if "pvalue_adj" in df_viz.columns:
+                    df_viz["pvalue_adj"] = df_viz["pvalue_adj"].astype(float)
+                    df_vol = df_viz[df_viz["pvalue_adj"] > 0].copy()
+                    df_vol["-log10p"] = -np.log10(df_vol["pvalue_adj"].clip(lower=1e-300))
+                    df_vol["significant"] = (df_vol["pvalue_adj"] < 0.05) & (df_vol["log2fc"].abs() > 0.5)
                     fig_vol = go.Figure()
                     # Non-significant
                     ns = df_vol[~df_vol["significant"]]
@@ -1235,7 +1235,7 @@ def render_charts(tool_results: list[dict]):
                 df_h = pd.DataFrame(human_data[:15])
                 if "phenotype_score" in df_h.columns:
                     df_h["phenotype_score"] = df_h["phenotype_score"].astype(float)
-                    df_h["label"] = df_h.apply(lambda r: f"{r.get('screen_name', '')[:25]} ({r.get('phenotype_name', '')})", axis=1)
+                    df_h["label"] = df_h.apply(lambda r: f"{(r.get('screen_name') or '')[:25]} ({r.get('phenotype_name') or ''})", axis=1)
                     df_h = df_h.sort_values("phenotype_score")
                     fig_h = go.Figure(go.Bar(
                         x=df_h["phenotype_score"], y=df_h["label"], orientation="h",
@@ -1513,7 +1513,7 @@ def render_charts(tool_results: list[dict]):
             gene = data.get("gene", "Gene")
             disease_counts = {}
             for r in results:
-                disease = r.get("disease", "Unknown")[:35]
+                disease = (r.get("disease") or "Unknown")[:35]
                 if disease:
                     disease_counts[disease] = disease_counts.get(disease, 0) + 1
             if disease_counts:
@@ -2045,7 +2045,7 @@ with col_history:
         st.info("No queries logged yet. Ask a question to get started!")
     else:
         for i, entry in enumerate(history):
-            ts = entry.get("timestamp", "")[:16]  # trim seconds
+            ts = (entry.get("timestamp") or "")[:16]  # trim seconds
             user = entry.get("user_email", "unknown").split("@")[0]  # show first part
             query = entry.get("query_text", "")
             focus = entry.get("species_focus", "")

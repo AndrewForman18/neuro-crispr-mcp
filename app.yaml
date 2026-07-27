@@ -8,9 +8,9 @@ env:
   - name: STREAMLIT_GATHER_USAGE_STATS
     value: "false"
   - name: NEUROPLEX_ENV
-    value: "dev"
+    value: "prod"
   - name: NEUROPLEX_CATALOG
-    value: "dhbl_discovery_us_dev"
+    value: "dhbl_discovery_us_prod"
   - name: NEUROPLEX_SCHEMA
     value: "genesis_schema"
   - name: DATABRICKS_SQL_WAREHOUSE_HTTP_PATH
@@ -20,7 +20,7 @@ env:
 resources:
   - name: sql_warehouse
     sql_warehouse:
-      id: 4a6cbd6099513596
+      id: 98a4282d8a41ab09
       permission: CAN_USE
   - name: serving_endpoint
     serving_endpoint:

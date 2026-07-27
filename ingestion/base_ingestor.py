@@ -72,7 +72,14 @@ class NormalizedRecord:
     source_updated_at: Optional[datetime] = None
 
     def to_row(self) -> dict[str, Any]:
-        """Convert to a dict suitable for Spark DataFrame creation."""
+        """Convert to a dict suitable for Spark DataFrame creation.
+
+        Column names and types match the DDL in source_registry.generate_base_ddl():
+          ingested_at     TIMESTAMP NOT NULL  → datetime object (not ISO string)
+          source_updated_at TIMESTAMP         → datetime object or None
+          api_version     STRING              → always included (None by default)
+          payload         VARIANT             → JSON string; Delta auto-casts via PARSE_JSON
+        """
         return {
             "record_id": self.record_id,
             "source_key": self.source_key,
@@ -82,8 +89,9 @@ class NormalizedRecord:
             "title": self.title,
             "summary": self.summary,
             "payload": json.dumps(self.payload),
-            "ingested_at": datetime.now(timezone.utc).isoformat(),
-            "source_updated_at": self.source_updated_at.isoformat() if self.source_updated_at else None,
+            "ingested_at": datetime.now(timezone.utc),          # datetime → TimestampType
+            "source_updated_at": self.source_updated_at,        # datetime or None
+            "api_version": None,                                 # DDL column; populated when needed
         }
 
 
@@ -229,9 +237,19 @@ class BaseIngestor(ABC):
 
     def _write_batch(self, spark, rows: list[dict], table_fqn: str, mode: str):
         """Write a batch of normalized records to Delta."""
+        import pandas as pd
         from pyspark.sql import functions as F
+        from pyspark.sql.types import StringType
 
-        df = spark.createDataFrame(rows)
+        # Route through pandas so Spark Connect can infer column types even
+        # when optional columns (e.g. source_updated_at) are all-None.
+        df = spark.createDataFrame(pd.DataFrame(rows))
+
+        # Cast any void columns (all-None in this batch) to STRING so the
+        # Delta MERGE doesn't fail with a type mismatch against the table schema.
+        for field in df.schema.fields:
+            if str(field.dataType) == "VoidType()":
+                df = df.withColumn(field.name, F.lit(None).cast(StringType()))
 
         if mode == "overwrite":
             df.write.mode("overwrite").saveAsTable(table_fqn)

@@ -61,12 +61,6 @@ query TargetAssociations($ensemblId: String!, $size: Int!) {
           name
           drugType
           maximumClinicalStage
-          mechanismsOfAction {
-            rows {
-              mechanismOfAction
-              actionType
-            }
-          }
         }
         diseases {
           disease {
@@ -80,6 +74,8 @@ query TargetAssociations($ensemblId: String!, $size: Int!) {
 }
 """
 
+# NOTE: Do NOT use inline fragments (... on Target) on SearchResult — the API rejects them.
+# Use 'name' field for gene symbol matching in _resolve_ensembl_id.
 _SEARCH_QUERY = """
 query SearchTarget($queryString: String!, $size: Int!) {
   search(queryString: $queryString, entityNames: ["target"], page: {size: $size, index: 0}) {
@@ -88,7 +84,6 @@ query SearchTarget($queryString: String!, $size: Int!) {
       id
       entity
       name
-      description
     }
   }
 }
@@ -114,14 +109,17 @@ class OpenTargetsIngestor(BaseIngestor):
         return data.get("data", {})
 
     def _resolve_ensembl_id(self, gene_symbol: str) -> str | None:
-        """Resolve a gene symbol to an Ensembl ID via OpenTargets search."""
+        """Resolve a gene symbol to an Ensembl ID via OpenTargets search.
+
+        Match by 'name' field (approvedSymbol is not returned by the search endpoint).
+        """
         data = self._graphql(_SEARCH_QUERY, {"queryString": gene_symbol, "size": 5})
         hits = data.get("search", {}).get("hits", [])
-        # Match by name (approvedSymbol not available in search results)
+        # Exact match on name (gene symbol)
         for hit in hits:
             if hit.get("name", "").upper() == gene_symbol.upper():
                 return hit["id"]
-        # Fallback: first target hit
+        # Fallback: first entity==target hit
         for hit in hits:
             if hit.get("entity") == "target":
                 return hit["id"]
@@ -158,8 +156,8 @@ class OpenTargetsIngestor(BaseIngestor):
                 "association": assoc,
             }
 
-        # Yield drug and clinical candidates
-        for drug_row in target.get("drugAndClinicalCandidates", {}).get("rows", []):
+        # Yield drug/clinical candidates (knownDrugs → drugAndClinicalCandidates in OT API)
+        for drug_row in (target.get("drugAndClinicalCandidates") or {}).get("rows", []):
             yield {
                 "record_type": "known_drug",
                 "target": target,
@@ -197,23 +195,24 @@ class OpenTargetsIngestor(BaseIngestor):
 
         elif record_type == "known_drug":
             drug_entry = raw_record["drug_entry"]
-            drug = drug_entry.get("drug", {})
-            # New schema: diseases is an array of {disease: {id, name}}
-            diseases_list = drug_entry.get("diseases") or []
-            first_disease = next(
-                (d["disease"] for d in diseases_list if d.get("disease")), {}
+            drug = drug_entry.get("drug") or {}
+            # diseases is a list of {disease: {id, name}}; take the first one for summary
+            disease_list = drug_entry.get("diseases") or []
+            disease = (disease_list[0].get("disease") or {}) if disease_list else {}
+            max_stage = drug_entry.get("maxClinicalStage") or drug.get("maximumClinicalStage")
+            disease_names = ", ".join(
+                (d.get("disease") or {}).get("name", "") for d in disease_list if d.get("disease")
             )
-            stage = drug_entry.get("maxClinicalStage", "Unknown")
             return NormalizedRecord(
-                record_id=f"{target['id']}_{drug.get('id', 'unknown')}_{first_disease.get('id', '')}",
+                record_id=f"{target['id']}_{drug.get('id', 'unknown')}",
                 source_key="opentargets",
                 gene_symbol=gene,
-                disease=first_disease.get("name"),
+                disease=disease.get("name"),
                 drug=drug.get("name"),
-                title=f"{drug.get('name')} → {gene} ({stage})",
+                title=f"{drug.get('name')} → {gene} (Phase {max_stage or '?'})",
                 summary=f"Drug type: {drug.get('drugType')}. "
-                        f"Max clinical stage: {drug.get('maximumClinicalStage')}. "
-                        f"Diseases: {', '.join(d['disease']['name'] for d in diseases_list if d.get('disease'))}.",
+                        f"Max clinical stage: {max_stage}. "
+                        f"Diseases: {disease_names or 'unknown'}.",
                 payload=drug_entry,
             )
 
