@@ -46,6 +46,7 @@ from neuro_mcp_server.server import (
     query_neuroplex_gene,
     query_neuroplex_diseases,
     query_neuroplex_variants,
+    get_protein_structure,
 )
 from neuro_mcp_server.neuroplex_query import (
     chart_disease_associations,

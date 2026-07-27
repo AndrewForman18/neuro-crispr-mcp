@@ -688,3 +688,103 @@ def query_neuroplex_variants(gene_symbol: str = "") -> str:
         gene_symbol: Optional gene filter (UPPER CASE). If empty, returns panel-wide summary.
     """
     return _npx_variant_summary(gene_symbol, _execute_query_fn=_execute_query)
+
+
+def get_protein_structure(gene_symbol: str, uniprot_accession: str = "") -> str:
+    """Get AlphaFold2 predicted protein structure from the EBI AlphaFold database.
+
+    Queries the EBI AlphaFold protein structure database for a human protein.
+    Returns structure metadata and direct PDB/CIF download URLs. Per-residue
+    pLDDT confidence scores are embedded in the PDB file:
+    >90 = very high, 70-90 = confident, 50-70 = low, <50 = disordered/flexible.
+
+    Args:
+        gene_symbol: Human gene symbol (UPPER CASE, e.g. PSEN1, APP, MAPT, HCRT, LRRK2, SOD1).
+        uniprot_accession: Optional UniProt accession (e.g. P49768 for PSEN1). Skips
+                           the UniProt lookup step when provided.
+    """
+    import urllib.request
+    import urllib.parse
+
+    try:
+        accession = uniprot_accession.strip().upper() if uniprot_accession else ""
+        resolved_gene = gene_symbol.upper()
+        protein_name = ""
+        seq_len = None
+
+        # Step 1: resolve UniProt accession if not supplied
+        if not accession:
+            for query in [
+                f"gene_exact:{urllib.parse.quote(gene_symbol)}+AND+organism_id:9606+AND+reviewed:true",
+                f"gene:{urllib.parse.quote(gene_symbol)}+AND+organism_id:9606+AND+reviewed:true",
+            ]:
+                url = (
+                    f"https://rest.uniprot.org/uniprotkb/search?query={query}"
+                    f"&fields=accession,gene_names,protein_name,sequence&format=json&size=1"
+                )
+                with urllib.request.urlopen(url, timeout=10) as resp:
+                    data = json.loads(resp.read())
+                hits = data.get("results", [])
+                if hits:
+                    entry = hits[0]
+                    accession = entry["primaryAccession"]
+                    gene_list = entry.get("genes", [])
+                    if gene_list:
+                        resolved_gene = gene_list[0].get("geneName", {}).get("value", gene_symbol.upper())
+                    pn_block = entry.get("proteinDescription", {}).get("recommendedName", {})
+                    protein_name = pn_block.get("fullName", {}).get("value", "")
+                    seq_len = entry.get("sequence", {}).get("length")
+                    break
+
+            if not accession:
+                return json.dumps({
+                    "error": (
+                        f"No reviewed Swiss-Prot entry found for '{gene_symbol}' (human, organism_id 9606). "
+                        f"Try supplying uniprot_accession directly to bypass this lookup."
+                    ),
+                    "gene_symbol": gene_symbol,
+                })
+
+        # Step 2: query EBI AlphaFold REST API
+        ebi_url = f"https://alphafold.ebi.ac.uk/api/prediction/{accession}"
+        with urllib.request.urlopen(ebi_url, timeout=15) as resp:
+            predictions = json.loads(resp.read())
+
+        if not predictions:
+            return json.dumps({
+                "error": (
+                    f"No AlphaFold structure found for accession '{accession}'. "
+                    f"The protein may not be covered by the AlphaFold database."
+                ),
+                "uniprot_accession": accession,
+                "gene_symbol": resolved_gene,
+            })
+
+        pred = predictions[0]
+        return json.dumps({
+            "source": "EBI AlphaFold Database",
+            "gene_symbol": resolved_gene,
+            "uniprot_accession": accession,
+            "protein_name": protein_name or pred.get("uniprotDescription", ""),
+            "sequence_length": seq_len or pred.get("seqRes"),
+            "alphafold_model_version": pred.get("latestVersion"),
+            "model_created_date": pred.get("modelCreatedDate"),
+            "last_updated": pred.get("lastUpdated"),
+            "pdb_url": pred.get("pdbUrl", ""),
+            "cif_url": pred.get("cifUrl", pred.get("bcifUrl", "")),
+            "pae_image_url": pred.get("paeImageUrl", ""),
+            "pae_doc_url": pred.get("paeDocUrl", ""),
+            "alphafold_page_url": f"https://alphafold.ebi.ac.uk/entry/{accession}",
+            "plddt_note": (
+                "Per-residue pLDDT confidence scores are embedded in the PDB file. "
+                ">90=very high confidence, 70-90=confident, 50-70=low, <50=disordered/flexible."
+            ),
+        }, default=str)
+
+    except Exception as exc:
+        logger.error(f"get_protein_structure failed for gene={gene_symbol!r}, accession={uniprot_accession!r}: {exc}")
+        return json.dumps({
+            "error": str(exc),
+            "gene_symbol": gene_symbol,
+            "uniprot_accession": uniprot_accession,
+        })
