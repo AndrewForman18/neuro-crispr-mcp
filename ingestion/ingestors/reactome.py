@@ -1,6 +1,8 @@
 """Reactome Ingestor — Biological pathways and gene membership.
 
 API: REST at https://reactome.org/ContentService/
+Note: The /data/pathways/low/entity/ endpoint requires UniProt accessions,
+not gene symbols. We resolve gene → UniProt via the UniProt REST API first.
 """
 from __future__ import annotations
 import json
@@ -15,12 +17,32 @@ class ReactomeIngestor(BaseIngestor):
     def _apply_auth(self, secret_value: str):
         pass
 
+    def _resolve_uniprot(self, gene_symbol: str) -> str | None:
+        """Resolve gene symbol to UniProt accession via UniProt REST API."""
+        try:
+            resp = self.get(
+                "https://rest.uniprot.org/uniprotkb/search",
+                params={
+                    "query": f"gene_exact:{gene_symbol} AND organism_id:9606 AND reviewed:true",
+                    "fields": "accession",
+                    "format": "json",
+                    "size": "1",
+                },
+            )
+            results = resp.json().get("results", [])
+            return results[0]["primaryAccession"] if results else None
+        except Exception:
+            return None
+
     def fetch(self, gene: str = "", species: str = "Homo sapiens", limit: int = 30, **kwargs) -> Generator[dict[str, Any], None, None]:
         if not gene:
             return
-        # Find pathways for gene
-        resp = self.get(f"{self.BASE}/data/pathways/low/entity/{gene.upper()}",
-                       params={"species": species})
+        # Resolve gene symbol to UniProt accession
+        accession = self._resolve_uniprot(gene.upper())
+        if not accession:
+            return
+        # Query Reactome mapping endpoint (the entity endpoint no longer accepts symbols)
+        resp = self.get(f"{self.BASE}/data/mapping/UniProt/{accession}/pathways")
         if resp.status_code != 200:
             return
         pathways = resp.json()

@@ -31,43 +31,48 @@ class MonarchIngestor(BaseIngestor):
         if not gene_id:
             return
 
-        # Get disease associations
-        resp = self.get(f"{self.BASE}/entity/{gene_id}/associations",
-                       params={"category": "biolink:GeneToDiseaseAssociation", "limit": limit})
-        assocs = resp.json().get("items", [])
-        for assoc in assocs:
-            yield {"record_type": "disease_association", "assoc": assoc, "gene_symbol": gene.upper(), "gene_id": gene_id}
-
-        # Get phenotype associations
-        resp = self.get(f"{self.BASE}/entity/{gene_id}/associations",
-                       params={"category": "biolink:GeneToPhenotypicFeatureAssociation", "limit": limit})
-        phenos = resp.json().get("items", [])
+        # Get phenotype associations (v3 API: /association endpoint with subject param)
+        resp = self.get(f"{self.BASE}/association",
+                       params={"subject": gene_id, "category": "biolink:GeneToPhenotypicFeatureAssociation", "limit": limit})
+        phenos = resp.json().get("items", []) if resp.status_code == 200 else []
         for pheno in phenos:
             yield {"record_type": "phenotype", "assoc": pheno, "gene_symbol": gene.upper(), "gene_id": gene_id}
+
+        # Get all other associations (GeneToDiseaseAssociation removed from v3 enum;
+        # query without category and filter for disease-related entries)
+        resp = self.get(f"{self.BASE}/association",
+                       params={"subject": gene_id, "limit": limit * 2})
+        all_assocs = resp.json().get("items", []) if resp.status_code == 200 else []
+        seen_pheno_ids = {p.get("id") for p in phenos}
+        for assoc in all_assocs:
+            if assoc.get("id") not in seen_pheno_ids:
+                yield {"record_type": "disease_association", "assoc": assoc, "gene_symbol": gene.upper(), "gene_id": gene_id}
 
     def normalize(self, raw: dict[str, Any]) -> NormalizedRecord:
         symbol = raw["gene_symbol"]
         assoc = raw["assoc"]
-        obj = assoc.get("object", {})
-        obj_name = obj.get("label", obj.get("id", "unknown"))
+        # v3 API: 'object' is a string ID, label is in 'object_label'
+        obj_id = assoc.get("object", "")
+        obj_name = assoc.get("object_label", obj_id)
 
         if raw["record_type"] == "disease_association":
             return NormalizedRecord(
-                record_id=f"monarch_{raw['gene_id']}_{obj.get('id', '')}",
+                record_id=f"monarch_{raw['gene_id']}_{obj_id}",
                 source_key="monarch",
                 gene_symbol=symbol,
                 disease=obj_name,
                 title=f"{symbol} ↔ {obj_name}",
-                summary=f"Disease association. Source: {', '.join(s.get('label', '') for s in assoc.get('publications', [])[:3])}. "
-                        f"Evidence: {assoc.get('evidence_count', 'N/A')}",
+                summary=f"Disease association. Category: {assoc.get('category', '')}. "
+                        f"Source: {assoc.get('primary_knowledge_source', 'N/A')}",
                 payload=assoc,
             )
         else:
             return NormalizedRecord(
-                record_id=f"monarch_{raw['gene_id']}_pheno_{obj.get('id', '')}",
+                record_id=f"monarch_{raw['gene_id']}_pheno_{obj_id}",
                 source_key="monarch",
                 gene_symbol=symbol,
                 title=f"{symbol} → {obj_name} (phenotype)",
-                summary=f"Phenotype association: {obj_name}. ID: {obj.get('id', '')}",
+                summary=f"Phenotype association: {obj_name}. ID: {obj_id}. "
+                        f"Source: {assoc.get('primary_knowledge_source', 'N/A')}",
                 payload=assoc,
             )

@@ -14,8 +14,8 @@ from ..base_ingestor import BaseIngestor, NormalizedRecord
 from ..source_registry import SourceConfig
 
 _GENE_QUERY = """
-query GeneVariants($name: String!) {
-  gene(name: $name) {
+query GeneVariants($symbol: String!) {
+  gene(entrezSymbol: $symbol) {
     id
     name
     description
@@ -23,23 +23,24 @@ query GeneVariants($name: String!) {
       nodes {
         id
         name
-        singleVariantMolecularProfile {
-          molecularProfileScore
-        }
         variantTypes {
           name
         }
-        evidenceItems(first: 20) {
-          nodes {
-            id
-            status
-            evidenceLevel
-            evidenceType
-            evidenceDirection
-            significance
-            disease { name doid }
-            therapies { name ncitId }
-            description
+        singleVariantMolecularProfile {
+          id
+          molecularProfileScore
+          evidenceItems(first: 20) {
+            nodes {
+              id
+              status
+              evidenceLevel
+              evidenceType
+              evidenceDirection
+              significance
+              disease { name doid }
+              therapies { name ncitId }
+              description
+            }
           }
         }
       }
@@ -58,13 +59,15 @@ class CivicIngestor(BaseIngestor):
     def fetch(self, gene: str = "", limit: int = 50, **kwargs) -> Generator[dict[str, Any], None, None]:
         if not gene:
             return
-        resp = self.post(self.CIVIC_API, json={"query": _GENE_QUERY, "variables": {"name": gene.upper()}})
+        resp = self.post(self.CIVIC_API, json={"query": _GENE_QUERY, "variables": {"symbol": gene.upper()}})
         data = resp.json().get("data", {}).get("gene")
         if not data:
             return
         for variant in (data.get("variants") or {}).get("nodes", []):
             yield {"record_type": "variant", "gene": data, "variant": variant}
-            for ev in (variant.get("evidenceItems") or {}).get("nodes", []):
+            # Evidence now accessed through singleVariantMolecularProfile
+            mp = variant.get("singleVariantMolecularProfile") or {}
+            for ev in (mp.get("evidenceItems") or {}).get("nodes", []):
                 yield {"record_type": "evidence", "gene": data, "variant": variant, "evidence": ev}
 
     def normalize(self, raw: dict[str, Any]) -> NormalizedRecord:
@@ -84,8 +87,8 @@ class CivicIngestor(BaseIngestor):
         else:  # evidence
             ev = raw["evidence"]
             v = raw["variant"]
-            disease = ev.get("disease", {}).get("name", "")
-            therapies = ", ".join(t["name"] for t in ev.get("therapies", []))
+            disease = (ev.get("disease") or {}).get("name", "")
+            therapies = ", ".join(t["name"] for t in (ev.get("therapies") or []))
             return NormalizedRecord(
                 record_id=f"civic_evidence_{ev['id']}",
                 source_key="civic",
