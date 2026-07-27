@@ -29,6 +29,23 @@ environments:
         name: databricks-claude-sonnet-5
         permission: CAN_QUERY
 
+  # ── val ──────────────────────────────────────────────────────────────────
+  val:
+    workspace_host: eisai-lakehouse-us-val.cloud.databricks.com
+    catalog: dhbl_discovery_us_val
+    schema: genesis_schema
+    sql_warehouse_id: 16b378817785a14c
+    serving_endpoint: databricks-claude-sonnet-5
+    table_prefix: neuroplex
+    query_log_table: neuroplex_query_log
+    app_resources:
+      sql_warehouse:
+        id: 16b378817785a14c
+        permission: CAN_USE
+      serving_endpoint:
+        name: databricks-claude-sonnet-5
+        permission: CAN_QUERY
+
   # ── prod ─────────────────────────────────────────────────────────────────
   prod:
     workspace_host: eisai-lakehouse-us-prod.cloud.databricks.com

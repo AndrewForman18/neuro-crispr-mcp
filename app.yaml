@@ -8,21 +8,23 @@ env:
   - name: STREAMLIT_GATHER_USAGE_STATS
     value: "false"
   - name: NEUROPLEX_ENV
-    value: "prod"
+    value: val
   - name: NEUROPLEX_CATALOG
-    value: "dhbl_discovery_us_prod"
+    value: dhbl_discovery_us_val
   - name: NEUROPLEX_SCHEMA
-    value: "genesis_schema"
+    value: genesis_schema
   - name: DATABRICKS_SQL_WAREHOUSE_HTTP_PATH
-    valueFrom: sql_warehouse
+    value: /sql/1.0/warehouses/16b378817785a14c
+  - name: DATABRICKS_HOST
+    value: eisai-lakehouse-us-val.cloud.databricks.com
   - name: DATABRICKS_SERVING_ENDPOINT
-    valueFrom: serving_endpoint
+    value: databricks-claude-sonnet-5
 resources:
-  - name: sql_warehouse
+  - name: sql-warehouse
     sql_warehouse:
-      id: 98a4282d8a41ab09
+      id: 16b378817785a14c
       permission: CAN_USE
-  - name: serving_endpoint
+  - name: serving-endpoint
     serving_endpoint:
       name: databricks-claude-sonnet-5
       permission: CAN_QUERY

@@ -278,19 +278,19 @@ _TABLE_OPENTARGETS = CFG.prefixed_fqn("opentargets")
 def query_gnomad_constraint(gene_symbol: str = "", limit: int = 20) -> str:
     """Query gnomAD gene constraint scores and ClinVar variants."""
     import json as _json
-    conditions = ["source_key = 'gnomad'"]
+    conditions = ["1=1"]
     if gene_symbol:
         conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
     where = " AND ".join(conditions)
     sql = f"""
-        SELECT gene_symbol, title, summary,
+        SELECT gene_symbol, title,
                payload:constraint.pLI::DOUBLE AS pLI,
                payload:constraint.oe_lof_upper::DOUBLE AS LOEUF,
                payload:constraint.mis_z::DOUBLE AS mis_z,
                payload:constraint.obs_lof::INT AS obs_lof,
                payload:constraint.exp_lof::DOUBLE AS exp_lof
         FROM {_TABLE_GNOMAD}
-        WHERE {where} AND title LIKE '%Gene Constraint%'
+        WHERE {where} AND title LIKE '%Constraint%'
         ORDER BY pLI DESC
         LIMIT {limit}
     """
@@ -301,14 +301,14 @@ def query_gnomad_constraint(gene_symbol: str = "", limit: int = 20) -> str:
 def query_gnomad_variants(gene_symbol: str = "", significance: str = "", limit: int = 20) -> str:
     """Query gnomAD ClinVar variants for a gene."""
     import json as _json
-    conditions = ["source_key = 'gnomad'", "title NOT LIKE '%Gene Constraint%'"]
+    conditions = ["title NOT LIKE '%Constraint%'"]
     if gene_symbol:
         conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
     if significance:
         conditions.append(f"LOWER(title) LIKE LOWER('%{significance}%')")
     where = " AND ".join(conditions)
     sql = f"""
-        SELECT gene_symbol, title, summary
+        SELECT gene_symbol, title
         FROM {_TABLE_GNOMAD}
         WHERE {where}
         LIMIT {limit}
@@ -320,7 +320,7 @@ def query_gnomad_variants(gene_symbol: str = "", significance: str = "", limit: 
 def query_opentargets_associations(gene_symbol: str = "", disease: str = "", limit: int = 20) -> str:
     """Query OpenTargets target-disease associations."""
     import json as _json
-    conditions = ["source_key = 'opentargets'", "disease IS NOT NULL"]
+    conditions = ["disease IS NOT NULL"]
     if gene_symbol:
         conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
     if disease:
@@ -340,7 +340,7 @@ def query_opentargets_associations(gene_symbol: str = "", disease: str = "", lim
 def query_opentargets_tractability(gene_symbol: str = "", limit: int = 20) -> str:
     """Query OpenTargets tractability/druggability for a gene."""
     import json as _json
-    conditions = ["source_key = 'opentargets'", "title LIKE '%Tractability%'"]
+    conditions = ["title LIKE '%Tractability%'"]
     if gene_symbol:
         conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
     where = " AND ".join(conditions)
@@ -368,21 +368,24 @@ _TABLE_KEGG = CFG.prefixed_fqn("kegg")
 def query_civic_evidence(gene_symbol: str = "", disease: str = "", limit: int = 20) -> str:
     """Query CIViC clinical variant evidence and therapy associations."""
     import json as _json
-    conditions = ["source_key = 'civic'"]
-    if gene_symbol:
-        conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
-    if disease:
-        conditions.append(f"LOWER(disease) LIKE LOWER('%{disease}%')")
-    where = " AND ".join(conditions)
-    sql = f"SELECT gene_symbol, disease, drug, title, summary FROM {_TABLE_CIVIC} WHERE {where} LIMIT {limit}"
-    results = _execute_query(sql, timeout=15)
+    try:
+        conditions = ["1=1"]
+        if gene_symbol:
+            conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
+        if disease:
+            conditions.append(f"LOWER(disease) LIKE LOWER('%{disease}%')")
+        where = " AND ".join(conditions)
+        sql = f"SELECT gene_symbol, disease, drug, title, summary FROM {_TABLE_CIVIC} WHERE {where} LIMIT {limit}"
+        results = _execute_query(sql, timeout=15)
+    except Exception:
+        results = []
     return _json.dumps({"source": "CIViC", "gene": gene_symbol, "count": len(results), "results": results})
 
 
 def query_cbioportal_mutations(gene_symbol: str = "", cancer_type: str = "", limit: int = 20) -> str:
     """Query cBioPortal cancer mutation data."""
     import json as _json
-    conditions = ["source_key = 'cbioportal'"]
+    conditions = ["1=1"]
     if gene_symbol:
         conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
     if cancer_type:
@@ -396,7 +399,7 @@ def query_cbioportal_mutations(gene_symbol: str = "", cancer_type: str = "", lim
 def query_genetic_tests(gene_symbol: str = "", limit: int = 20) -> str:
     """Query NCBI GTR for available genetic tests."""
     import json as _json
-    conditions = ["source_key = 'ncbi_gtr'"]
+    conditions = ["1=1"]
     if gene_symbol:
         conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
     where = " AND ".join(conditions)
@@ -408,39 +411,45 @@ def query_genetic_tests(gene_symbol: str = "", limit: int = 20) -> str:
 def query_protein_expression(gene_symbol: str = "", tissue: str = "", limit: int = 20) -> str:
     """Query Human Protein Atlas tissue expression and localization."""
     import json as _json
-    conditions = ["source_key = 'human_protein_atlas'"]
-    if gene_symbol:
-        conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
-    if tissue:
-        conditions.append(f"LOWER(title) LIKE LOWER('%{tissue}%')")
-    where = " AND ".join(conditions)
-    sql = f"SELECT gene_symbol, title, summary FROM {_TABLE_HPA} WHERE {where} LIMIT {limit}"
-    results = _execute_query(sql, timeout=15)
+    try:
+        conditions = ["1=1"]
+        if gene_symbol:
+            conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
+        if tissue:
+            conditions.append(f"LOWER(title) LIKE LOWER('%{tissue}%')")
+        where = " AND ".join(conditions)
+        sql = f"SELECT gene_symbol, title, summary FROM {_TABLE_HPA} WHERE {where} LIMIT {limit}"
+        results = _execute_query(sql, timeout=15)
+    except Exception:
+        results = []
     return _json.dumps({"source": "Human Protein Atlas", "gene": gene_symbol, "count": len(results), "results": results})
 
 
 def query_monarch_associations(gene_symbol: str = "", disease: str = "", limit: int = 20) -> str:
     """Query Monarch Initiative gene-disease and gene-phenotype associations."""
     import json as _json
-    conditions = ["source_key = 'monarch'"]
-    if gene_symbol:
-        conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
-    if disease:
-        conditions.append(f"LOWER(disease) LIKE LOWER('%{disease}%') OR LOWER(title) LIKE LOWER('%{disease}%')")
-    where = " AND ".join(conditions)
-    sql = f"SELECT gene_symbol, disease, title, summary FROM {_TABLE_MONARCH} WHERE {where} LIMIT {limit}"
-    results = _execute_query(sql, timeout=15)
+    try:
+        conditions = ["1=1"]
+        if gene_symbol:
+            conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
+        if disease:
+            conditions.append(f"LOWER(disease) LIKE LOWER('%{disease}%') OR LOWER(title) LIKE LOWER('%{disease}%')")
+        where = " AND ".join(conditions)
+        sql = f"SELECT gene_symbol, disease, title, summary FROM {_TABLE_MONARCH} WHERE {where} LIMIT {limit}"
+        results = _execute_query(sql, timeout=15)
+    except Exception:
+        results = []
     return _json.dumps({"source": "Monarch Initiative", "gene": gene_symbol, "count": len(results), "results": results})
 
 
 def query_protein_function(gene_symbol: str = "", limit: int = 10) -> str:
     """Query UniProt protein function, domains, and disease associations."""
     import json as _json
-    conditions = ["source_key = 'uniprot'"]
+    conditions = ["1=1"]
     if gene_symbol:
         conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
     where = " AND ".join(conditions)
-    sql = f"SELECT gene_symbol, disease, title, summary FROM {_TABLE_UNIPROT} WHERE {where} LIMIT {limit}"
+    sql = f"SELECT gene_symbol, title, summary FROM {_TABLE_UNIPROT} WHERE {where} LIMIT {limit}"
     results = _execute_query(sql, timeout=15)
     return _json.dumps({"source": "UniProt", "gene": gene_symbol, "count": len(results), "results": results})
 
@@ -448,21 +457,24 @@ def query_protein_function(gene_symbol: str = "", limit: int = 10) -> str:
 def query_reactome_pathways(gene_symbol: str = "", pathway: str = "", limit: int = 20) -> str:
     """Query Reactome biological pathways for a gene."""
     import json as _json
-    conditions = ["source_key = 'reactome'"]
-    if gene_symbol:
-        conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
-    if pathway:
-        conditions.append(f"LOWER(title) LIKE LOWER('%{pathway}%')")
-    where = " AND ".join(conditions)
-    sql = f"SELECT gene_symbol, title, summary FROM {_TABLE_REACTOME} WHERE {where} LIMIT {limit}"
-    results = _execute_query(sql, timeout=15)
+    try:
+        conditions = ["1=1"]
+        if gene_symbol:
+            conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
+        if pathway:
+            conditions.append(f"LOWER(title) LIKE LOWER('%{pathway}%')")
+        where = " AND ".join(conditions)
+        sql = f"SELECT gene_symbol, title, summary FROM {_TABLE_REACTOME} WHERE {where} LIMIT {limit}"
+        results = _execute_query(sql, timeout=15)
+    except Exception:
+        results = []
     return _json.dumps({"source": "Reactome", "gene": gene_symbol, "count": len(results), "results": results})
 
 
 def query_kegg_pathways(gene_symbol: str = "", pathway: str = "", limit: int = 20) -> str:
     """Query KEGG metabolic/signaling pathways for a gene."""
     import json as _json
-    conditions = ["source_key = 'kegg'"]
+    conditions = ["1=1"]
     if gene_symbol:
         conditions.append(f"UPPER(gene_symbol) = UPPER('{gene_symbol}')")
     if pathway:

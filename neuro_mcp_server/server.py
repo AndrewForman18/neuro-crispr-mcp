@@ -162,11 +162,13 @@ def list_ndd_risk_genes(disorder: str = "NDD", fdr_threshold: float = 0.1, limit
 
     query = f"""
         SELECT DISTINCT gene, gene_id, chromosome,
-               {fdr_col} AS fdr, p_TADA_{disorder} AS pvalue,
+               CAST({fdr_col} AS DOUBLE) AS fdr,
+               CAST(p_TADA_{disorder} AS DOUBLE) AS pvalue,
                ASD72, DD309, NDD373, SCZ244
         FROM {TABLE_NDD_GENES}
-        WHERE {fdr_col} IS NOT NULL AND {fdr_col} < :fdr_threshold
-        ORDER BY {fdr_col} ASC
+        WHERE {fdr_col} IS NOT NULL
+          AND CAST({fdr_col} AS DOUBLE) < :fdr_threshold
+        ORDER BY CAST({fdr_col} AS DOUBLE) ASC
         LIMIT {limit}
     """
     results = _execute_query(query, {"fdr_threshold": fdr_threshold})
